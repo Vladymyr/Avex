@@ -4,6 +4,8 @@
 #include "cmdparser.hpp"
 #include "avex.hpp"
 
+constexpr auto logo = "     e                                   \n    d8b     Y88b    /  e88~~8e  Y88b  /  \n   /Y88b     Y88b  /  d888  88b  Y88b/   \n  /  Y88b     Y88b/   8888__888   Y88b   \n /____Y88b     Y8/    Y888    ,   /Y88b  \n/      Y88b     Y      \"88___/   /  Y88b\n";
+
 int main(int argc, char* argv[])
 {
 	//loguru::g_preamble = false;
@@ -20,22 +22,21 @@ int main(int argc, char* argv[])
 
 	// Force to use global locale
 	setlocale(LC_ALL, "");
-	locale::global(locale(""));
-	cout.imbue(locale());
-	wcerr.imbue(locale());
+	std::locale::global(std::locale(""));
+	std::cout.imbue(std::locale());
+	std::wcerr.imbue(std::locale());
 
 	cli::Parser parser(argc, argv);
 	configure_parser(parser);
 
-	string logo = ("     e                                   \n    d8b     Y88b    /  e88~~8e  Y88b  /  \n   /Y88b     Y88b  /  d888  88b  Y88b/   \n  /  Y88b     Y88b/   8888__888   Y88b   \n /____Y88b     Y8/    Y888    ,   /Y88b  \n/      Y88b     Y      \"88___/   /  Y88b\n");
-	RAW_LOG_F(INFO, CSTR(logo));
+	RAW_LOG_F(INFO, logo);
 
 	if (!parser.run()) {
 		LOG_F(ERROR, "There was a problem while parsing the arguments");
 		exit(1);
 	}
 
-	string path = parser.get<string>("p");
+	std::string path = parser.get<std::string>("p");
 	LOG_F(INFO, "Targeted path: %s", CSTR(path));
 
 	if (!fs::exists(path)) {
@@ -48,13 +49,9 @@ int main(int argc, char* argv[])
 
 	if (fs::is_directory(path)) {
 		DLOG_F(INFO, "Collecting paths of individual files and subdirectories");
-		list<fs::path> path_list;
-		if (sub) {
-			path_list = list_data(fs::recursive_directory_iterator(path));
-		}
-		else {
-			path_list = list_data(fs::directory_iterator(path));
-		}
+		std::list<fs::path> path_list = sub 
+			? list_data(fs::recursive_directory_iterator(path))
+			: list_data(fs::directory_iterator(path));
 
 		path_list.sort(compare_dir_last);
 		for (auto& _path : path_list) {
@@ -83,7 +80,7 @@ int main(int argc, char* argv[])
 inline void configure_parser(cli::Parser& parser) {
 	DLOG_F(INFO, "Attempting to configure parser");
 
-	parser.set_optional<string>("p", "path", "C:\\Users\\Vladymyr\\Downloads\\32830186\\lol", "Path to a file or folder for erasion");
+	parser.set_optional<std::string>("p", "path", "C:\\Users\\Vladymyr\\Downloads\\32830186\\lol", "Path to a file or folder for erasion");
 	parser.set_optional<bool>("s", "subroutines", true, "Erase the subdirectories, the content inside these and the targeted directory itself");
 	parser.set_optional<int>("r", "rename", 1, "Rename the directories/folders before overwriting and unlinking them");
 	parser.set_optional<int>("ps", "passes", 1, "Number of times the deleted data will be overwritten");
@@ -91,11 +88,7 @@ inline void configure_parser(cli::Parser& parser) {
 	DLOG_F(INFO, "Parser configured correctly");
 }
 
-// stdlib.h
-// https://comp.os.ms-windows.programmer.win32.narkive.com/XUjC2CBO/max-path-vs-max-path-what-s-the-difference
-#define _MAX_PATH 260
-
-void rename_path(string& file_path)
+void rename_path(std::string& file_path)
 {
 	const auto _file_path = CSTR(file_path);
 
@@ -103,10 +96,11 @@ void rename_path(string& file_path)
 	DLOG_F(INFO, "Attempting to rename %s", _file_path);
 
 	const auto original_name = decompose_path(file_path);
-	const auto original_length = original_name.length();
-	const auto new_path = file_path.substr(0, file_path.length() - original_length) // get original path
-		+ generate_random_str(original_length); // generate new file name
-
+	const auto original_name_length = original_name.length();
+	const auto original_path = file_path.substr(0, file_path.length() - original_name_length);
+	const auto new_path = original_path // get original path
+		+ generate_random_str(min(original_name_length, _MAX_PATH - original_path.length())); // generate new name
+;
 	DLOG_F(INFO, "New generated name: \"%s\"", CSTR(new_path));
 
 	// https://stackoverflow.com/a/48614612
@@ -127,14 +121,14 @@ void rename_path(string& file_path)
 	}
 }
 
-void overwrite_content(string& file_path) {
+void overwrite_content(std::string& file_path) {
 	DLOG_F(INFO, "Attempting overwrite: %s", CSTR(file_path));
 
 	const auto size = fs::file_size(file_path);
 	DLOG_F(INFO, "File size: %i", size);
 
-	ofstream dummy(file_path, ios_base::binary | ios_base::out);
-	for (int i = 0; i < size; ++i) {
+	std::ofstream dummy(file_path, std::ios_base::binary | std::ios_base::out);
+	for (auto i = 0; i < size; ++i) {
 		dummy << 0; //Overwrite with zeros
 	}
 	dummy.close();
@@ -142,8 +136,7 @@ void overwrite_content(string& file_path) {
 	DLOG_F(INFO, "Succesfully overwritten");
 }
 
-
-string decompose_path(string file_path)
+std::string decompose_path(std::string file_path)
 {
 #if defined _WIN32
 	const auto last_separator = file_path.find_last_of('\\');
@@ -153,7 +146,7 @@ string decompose_path(string file_path)
 
 	// Remove directory if present
 	// Do this before extension removal incase directory has a period character
-	if (string::npos != last_separator)
+	if (std::string::npos != last_separator)
 	{
 		file_path.erase(0, last_separator + 1);
 	}
@@ -161,7 +154,7 @@ string decompose_path(string file_path)
 	return file_path;
 }
 
-void unlink_path(string& path) {
+void unlink_path(std::string& path) {
 	const char* _path_str = CSTR(path);
 	ERROR_CONTEXT("Unlinking", _path_str);
 	DLOG_F(INFO, "Attempting to unlink: %s", _path_str);
@@ -176,7 +169,6 @@ void unlink_path(string& path) {
 		DLOG_F(INFO, "Remove call %b", status);
 	}
 	path = decompose_path(path);
-
 	if (status) {
 		DLOG_F(INFO, "File entry \"%s\" and it's contents removed from file system entry", CSTR(path));
 	}

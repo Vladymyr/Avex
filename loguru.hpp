@@ -204,7 +204,7 @@ Website: www.ilikebigbits.com
 #ifdef __COUNTER__
 #   define LOGURU_ANONYMOUS_VARIABLE(str) LOGURU_CONCATENATE(str, __COUNTER__)
 #else
-#   define LOGURU_ANONYMOUS_VARIABLE(str) LOGURU_CONCATENATE(str, __LINE__)
+#   define LOGURU_ANONYMOUS_VARIABLE(str) LOGURU_CONCATENATE(str, 0)
 #endif
 
 #if defined(__clang__) || defined(__GNUC__)
@@ -925,13 +925,13 @@ namespace loguru
 	#define ERROR_CONTEXT(descr, data)                                             \
 		const loguru::EcEntryData<loguru::make_ec_type<decltype(data)>::type>      \
 			LOGURU_ANONYMOUS_VARIABLE(error_context_scope_)(                       \
-				__FILE__, __LINE__, descr, data,                                   \
+				"Avex", 0, descr, data,                                   \
 				static_cast<loguru::EcEntryData<loguru::make_ec_type<decltype(data)>::type>::Printer>(loguru::ec_to_text) ) // For better error messages
 
 /*
 	#define ERROR_CONTEXT(descr, data)                                 \
 		const auto LOGURU_ANONYMOUS_VARIABLE(error_context_scope_)(    \
-			loguru::make_ec_entry_lambda(__FILE__, __LINE__, descr,    \
+			loguru::make_ec_entry_lambda("Avex", 0, descr,    \
 				[=](){ return loguru::ec_to_text(data); }))
 */
 
@@ -1026,7 +1026,7 @@ namespace loguru
 // LOG_F(2, "Only logged if verbosity is 2 or higher: %d", some_number);
 #define VLOG_F(verbosity, ...)                                                                     \
 	((verbosity) > loguru::current_verbosity_cutoff()) ? (void)0                                   \
-									  : loguru::log(verbosity, __FILE__, __LINE__, __VA_ARGS__)
+									  : loguru::log(verbosity, "Avex", 0, __VA_ARGS__)
 
 // LOG_F(INFO, "Foo: %d", some_number);
 #define LOG_F(verbosity_name, ...) VLOG_F(loguru::Verbosity_ ## verbosity_name, __VA_ARGS__)
@@ -1034,7 +1034,7 @@ namespace loguru
 #define VLOG_IF_F(verbosity, cond, ...)                                                            \
 	((verbosity) > loguru::current_verbosity_cutoff() || (cond) == false)                          \
 		? (void)0                                                                                  \
-		: loguru::log(verbosity, __FILE__, __LINE__, __VA_ARGS__)
+		: loguru::log(verbosity, "Avex", 0, __VA_ARGS__)
 
 #define LOG_IF_F(verbosity_name, cond, ...)                                                        \
 	VLOG_IF_F(loguru::Verbosity_ ## verbosity_name, cond, __VA_ARGS__)
@@ -1042,12 +1042,12 @@ namespace loguru
 #define VLOG_SCOPE_F(verbosity, ...)                                                               \
 	loguru::LogScopeRAII LOGURU_ANONYMOUS_VARIABLE(error_context_RAII_) =                          \
 	((verbosity) > loguru::current_verbosity_cutoff()) ? loguru::LogScopeRAII() :                  \
-	loguru::LogScopeRAII(verbosity, __FILE__, __LINE__, __VA_ARGS__)
+	loguru::LogScopeRAII(verbosity, "Avex", 0, __VA_ARGS__)
 
 // Raw logging - no preamble, no indentation. Slightly faster than full logging.
 #define RAW_VLOG_F(verbosity, ...)                                                                 \
 	((verbosity) > loguru::current_verbosity_cutoff()) ? (void)0                                   \
-									  : loguru::raw_log(verbosity, __FILE__, __LINE__, __VA_ARGS__)
+									  : loguru::raw_log(verbosity, "Avex", 0, __VA_ARGS__)
 
 #define RAW_LOG_F(verbosity_name, ...) RAW_VLOG_F(loguru::Verbosity_ ## verbosity_name, __VA_ARGS__)
 
@@ -1061,14 +1061,14 @@ namespace loguru
 // ABORT_F macro. Usage:  ABORT_F("Cause of error: %s", error_str);
 
 // Message is optional
-#define ABORT_F(...) loguru::log_and_abort(0, "ABORT: ", __FILE__, __LINE__, __VA_ARGS__)
+#define ABORT_F(...) loguru::log_and_abort(0, "ABORT: ", "Avex", 0, __VA_ARGS__)
 
 // --------------------------------------------------------------------
 // CHECK_F macros:
 
 #define CHECK_WITH_INFO_F(test, info, ...)                                                         \
-	LOGURU_PREDICT_TRUE((test) == true) ? (void)0 : loguru::log_and_abort(0, "CHECK FAILED:  " info "  ", __FILE__,      \
-													   __LINE__, ##__VA_ARGS__)
+	LOGURU_PREDICT_TRUE((test) == true) ? (void)0 : loguru::log_and_abort(0, "CHECK FAILED:  " info "  ", "Avex",      \
+													   0, ##__VA_ARGS__)
 
 /* Checked at runtime too. Will print error, then call fatal_handler (if any), then 'abort'.
    Note that the test must be boolean.
@@ -1089,7 +1089,7 @@ namespace loguru
 			auto fail_info = loguru::textprintf("CHECK FAILED:  " LOGURU_FMT(s) " " LOGURU_FMT(s) " " LOGURU_FMT(s) "  (" LOGURU_FMT(s) " " LOGURU_FMT(s) " " LOGURU_FMT(s) ")  ",           \
 				#expr_left, #op, #expr_right, str_left.c_str(), #op, str_right.c_str());           \
 			auto user_msg = loguru::textprintf(__VA_ARGS__);                                       \
-			loguru::log_and_abort(0, fail_info.c_str(), __FILE__, __LINE__,                        \
+			loguru::log_and_abort(0, fail_info.c_str(), "Avex", 0,                        \
 			                      LOGURU_FMT(s), user_msg.c_str());                                         \
 		}                                                                                          \
 	} while (false)
@@ -1311,7 +1311,7 @@ namespace loguru
 #define VLOG_IF_S(verbosity, cond)                                                                 \
 	((verbosity) > loguru::current_verbosity_cutoff() || (cond) == false)                          \
 		? (void)0                                                                                  \
-		: loguru::Voidify() & loguru::StreamLogger(verbosity, __FILE__, __LINE__)
+		: loguru::Voidify() & loguru::StreamLogger(verbosity, "Avex", 0)
 #define LOG_IF_S(verbosity_name, cond) VLOG_IF_S(loguru::Verbosity_ ## verbosity_name, cond)
 #define VLOG_S(verbosity)              VLOG_IF_S(verbosity, true)
 #define LOG_S(verbosity_name)          VLOG_S(loguru::Verbosity_ ## verbosity_name)
@@ -1319,7 +1319,7 @@ namespace loguru
 // -----------------------------------------------
 // ABORT_S macro. Usage:  ABORT_S() << "Causo of error: " << details;
 
-#define ABORT_S() loguru::Voidify() & loguru::AbortLogger("ABORT: ", __FILE__, __LINE__)
+#define ABORT_S() loguru::Voidify() & loguru::AbortLogger("ABORT: ", "Avex", 0)
 
 // -----------------------------------------------
 // CHECK_S macros:
@@ -1327,7 +1327,7 @@ namespace loguru
 #define CHECK_WITH_INFO_S(cond, info)                                                              \
 	LOGURU_PREDICT_TRUE((cond) == true)                                                            \
 		? (void)0                                                                                  \
-		: loguru::Voidify() & loguru::AbortLogger("CHECK FAILED:  " info "  ", __FILE__, __LINE__)
+		: loguru::Voidify() & loguru::AbortLogger("CHECK FAILED:  " info "  ", "Avex", 0)
 
 #define CHECK_S(cond) CHECK_WITH_INFO_S(cond, #cond)
 #define CHECK_NOTNULL_S(x) CHECK_WITH_INFO_S((x) != nullptr, #x " != nullptr")
@@ -1336,7 +1336,7 @@ namespace loguru
 	while (auto error_string = loguru::function_name(#expr1 " " #op " " #expr2,                    \
 													 loguru::referenceable_value(expr1), #op,      \
 													 loguru::referenceable_value(expr2)))          \
-		loguru::AbortLogger(error_string->c_str(), __FILE__, __LINE__)
+		loguru::AbortLogger(error_string->c_str(), "Avex", 0)
 
 #define CHECK_EQ_S(expr1, expr2) CHECK_OP_S(check_EQ_impl, expr1, ==, expr2)
 #define CHECK_NE_S(expr1, expr2) CHECK_OP_S(check_NE_impl, expr1, !=, expr2)
@@ -1356,7 +1356,7 @@ namespace loguru
 	#define DVLOG_IF_S(verbosity, cond)                                                     \
 		(true || (verbosity) > loguru::current_verbosity_cutoff() || (cond) == false)       \
 			? (void)0                                                                       \
-			: loguru::Voidify() & loguru::StreamLogger(verbosity, __FILE__, __LINE__)
+			: loguru::Voidify() & loguru::StreamLogger(verbosity, "Avex", 0)
 
 	#define DLOG_IF_S(verbosity_name, cond) DVLOG_IF_S(loguru::Verbosity_ ## verbosity_name, cond)
 	#define DVLOG_S(verbosity)              DVLOG_IF_S(verbosity, true)
