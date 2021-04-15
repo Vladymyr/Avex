@@ -11,7 +11,7 @@ inline void configure_parser(cli::Parser& parser);
 
 void rename_path(std::string& file_path);
 
-void overwrite_content(std::string& file_path);
+void overwrite_content(std::string& file_path, int passes);
 
 void unlink_path(std::string& path);
 
@@ -21,9 +21,9 @@ std::string decompose_path(std::string file_path);
 namespace fs = std::filesystem;
 
 template <typename  _DirIt>
-std::list<fs::path> list_data(const _DirIt& dir_iterator);
+auto list_data(const _DirIt& dir_iterator);
 
-inline void erase(std::string& path);
+inline void erase(std::string& path, bool rename, int passes);
 
 inline auto generate_random_str(const int len);
 

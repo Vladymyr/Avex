@@ -9,12 +9,16 @@ static func_proto_GetCurrentProcessId getpid = GetCurrentProcessId;
 // Mac OS, not sure if this is covered by __posix__ and/or __unix__ though...
 #endif
 
-inline void erase(std::string& path) {
+inline void erase(std::string& path, bool rename, int passes) {
 	LOG_F(INFO, "Removing: %s", CSTR(path));
-	rename_path(path);
-	if (!fs::is_directory(path)) { 
-		overwrite_content(path);
+	if (rename) {
+		rename_path(path);
 	}
+
+	if (!fs::is_directory(path) && passes != 0) {
+		overwrite_content(path, passes);
+	}
+
 	unlink_path(path);
 }
 

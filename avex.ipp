@@ -1,7 +1,7 @@
 #pragma once
 
 template <typename  _DirIt>
-std::list<fs::path> list_data(const _DirIt& dir_iterator){
+auto list_data(const _DirIt& dir_iterator){
 	std::list<fs::path> path_list;
 	try {
 		for (const auto& entry : dir_iterator) {
