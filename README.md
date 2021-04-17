@@ -49,6 +49,6 @@ This software uses the following open source packages:
 Pull requests and/or optimization proposals are welcome. For major changes, please open an issue first to discuss what you would like to change and the reason of it.
 
 ## License
->You can check out the full license [here](https://github.com/Vladymyr/Avex/blob/master/LICENSE)
+>You can check out the full license [here](https://github.com/Vladymyr/Avex/blob/main/LICENSE)
 
 This project is licensed under the terms of the [**GNU GPLv3**](https://choosealicense.com/licenses/gpl-3.0/). Copyright and license notices must be preserved for forks.
