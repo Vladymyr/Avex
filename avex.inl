@@ -1,14 +1,3 @@
-#ifdef _WIN32 // Note: without the underscore, it's not msdn official!
-#include <windows.h>
-typedef DWORD(WINAPI* func_proto_GetCurrentProcessId)(void);
-static func_proto_GetCurrentProcessId getpid = GetCurrentProcessId;
-// Windows (x64 and x86)
-#elif defined(__unix__) or defined(__linux__)
-#include <unistd.h>
-#elif __APPLE__
-// Mac OS, not sure if this is covered by __posix__ and/or __unix__ though...
-#endif
-
 inline void erase(std::string& path, bool rename, int passes) {
 	LOG_F(INFO, "Removing: %s", CSTR(path));
 	if (rename) {

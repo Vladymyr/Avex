@@ -9,7 +9,6 @@ constexpr auto invalid_path = "_";
 
 int main(int argc, char* argv[])
 {
-
 	//loguru::g_preamble = false;
 	loguru::g_preamble_header = false;
 
@@ -104,8 +103,8 @@ void rename_path(std::string& file_path)
 	const auto original_name_length = original_name.length();
 	const auto original_path = file_path.substr(0, file_path.length() - original_name_length);
 	const auto new_path = original_path // get original path
-		+ generate_random_str(min(original_name_length, _MAX_PATH - original_path.length())); // generate new name
-	;
+		+ generate_random_str(std::min(original_name_length, _MAX_PATH - original_path.length())); // generate new name
+	
 	DLOG_F(INFO, "New generated name: \"%s\"", CSTR(new_path));
 
 	// https://stackoverflow.com/a/48614612
