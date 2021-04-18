@@ -9,13 +9,19 @@
 
 inline void configure_parser(cli::Parser& parser);
 
-void rename_path(std::string& file_path);
+inline auto parse_string_into_args(char* line, const int limit, int& counter, char* args[]);
 
-void overwrite_content(std::string& file_path, int passes);
+char* split_line(char** str, char** word);
 
-void unlink_path(std::string& path);
+void erase(std::string& path, bool rename, const int passes);
 
-std::string decompose_path(std::string file_path);
+inline void rename_path(std::string& file_path);
+
+inline auto generate_random_str(const int size);
+
+inline void overwrite_content(std::string& file_path, const int passes);
+
+inline void unlink_path(std::string& path);
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -23,17 +29,15 @@ namespace fs = std::filesystem;
 template <typename  _DirIt>
 auto list_data(const _DirIt& dir_iterator);
 
-inline void erase(std::string& path, bool rename, int passes);
+std::string decompose_path(std::string file_path);
 
-inline auto generate_random_str(const int len);
-
-inline auto compare_dir_last(const fs::path& first, const fs::path& second);
+// Inline functions should go in a separate file that is included at the bottom of the header file containing their prototypes. 
+// Preferred extensions for this file are ".ipp", ".inl", or ".inline". Do NOT put them in a file with extension ".cpp"
+#include "avex.inl"
 
 // Template functions should go in a separate file that is included at the bottom of the header file containing their prototypes. 
 // Preferred extensions for this file are ".ipp", ".tpp", or ".template"
 #include "avex.ipp"
 
-// Inline functions should go in a separate file that is included at the bottom of the header file containing their prototypes. 
-// Preferred extensions for this file are ".ipp", ".inl", or ".inline". Do NOT put them in a file with extension ".cpp"
-#include "avex.inl"
+
 

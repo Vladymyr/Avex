@@ -5,7 +5,6 @@
 #include "avex.hpp"
 
 constexpr auto logo = "     e                                   \n    d8b     Y88b    /  e88~~8e  Y88b  /  \n   /Y88b     Y88b  /  d888  88b  Y88b/   \n  /  Y88b     Y88b/   8888__888   Y88b   \n /____Y88b     Y8/    Y888    ,   /Y88b  \n/      Y88b     Y      \"88___/   /  Y88b\n";
-constexpr auto invalid_path = "_";
 
 int main(int argc, char* argv[])
 {
@@ -27,6 +26,7 @@ int main(int argc, char* argv[])
 	std::cout.imbue(std::locale());
 	std::wcerr.imbue(std::locale());
 
+avex:
 	cli::Parser parser(argc, argv);
 	configure_parser(parser);
 
@@ -34,15 +34,15 @@ int main(int argc, char* argv[])
 
 	if (!parser.run()) {
 		LOG_F(ERROR, "There was a problem while parsing the arguments");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	auto path = parser.get<std::string>("p");
 	LOG_F(INFO, "Targeted path: %s", CSTR(path));
 
-	if (path._Equal(invalid_path) || !fs::exists(path)) {
+	if (!fs::exists(path)) {
 		LOG_F(ERROR, "The path provided is invalid (doesn't exit)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	const auto sub = parser.get<bool>("s");
@@ -56,7 +56,10 @@ int main(int argc, char* argv[])
 			? list_data(fs::recursive_directory_iterator(path))
 			: list_data(fs::directory_iterator(path));
 
-		path_list.sort(compare_dir_last);
+		path_list.sort([](const fs::path& first, const fs::path& second) {
+			return !fs::is_directory(first) && fs::is_directory(second);
+		});
+
 		for (auto& _path : path_list) {
 			if (sub || !fs::is_directory(_path)) {
 				auto _path_str = _path.string();
@@ -77,69 +80,105 @@ int main(int argc, char* argv[])
 		erase(path, rename, passes);
 	}
 
+	LOG_F(INFO, "\nErasion completed. Exit? (Y/N)");
+	if (std::cin.get() == 'N') {
+		LOG_F(INFO, "Waiting for command");
 
-	return 0;
-}
+		std::string next_cmd;
+		std::getline(std::cin, next_cmd);
+		if (!next_cmd.empty()) {
+			//argv[0] is always the app
+			next_cmd = "Avex " + next_cmd;
 
-inline void configure_parser(cli::Parser& parser) {
-	DLOG_F(INFO, "Attempting to configure parser");
+			// std::string into a writable C string
+			const auto line_size = next_cmd.size();
+			auto input = new char[line_size + 1];
+			std::copy(next_cmd.begin(), next_cmd.end(), input);
+			input[line_size] = '\0';
 
-	parser.set_optional<std::string>("p", "path", invalid_path, "Path to a file or folder for erasion");
-	parser.set_optional<bool>("s", "subroutines", false, "Erase the subdirectories, the content inside these and the targeted directory itself");
-	parser.set_optional<bool>("r", "rename", true, "Rename the directories/folders before overwriting and unlinking them");
-	parser.set_optional<int>("ps", "passes", 1, "Number of times the deleted data will be overwritten");
+			constexpr auto argc_MAX = 10;
+			char* _argv[argc_MAX] = { 0 };
+			auto _argc = 0;
 
-	DLOG_F(INFO, "Parser configured correctly");
-}
+			if (parse_string_into_args(input, argc_MAX, _argc, _argv) != '\0') { // or more clear `strlen(rest)==0` but not efficient
+				DLOG_F(WARNING, "There is still something to parse. argc_MAX is too small.");
+			}
 
-void rename_path(std::string& file_path)
-{
-	const auto _file_path = CSTR(file_path);
-
-	ERROR_CONTEXT("Renaming", _file_path);
-	DLOG_F(INFO, "Attempting to rename %s", _file_path);
-
-	const auto original_name = decompose_path(file_path);
-	const auto original_name_length = original_name.length();
-	const auto original_path = file_path.substr(0, file_path.length() - original_name_length);
-	const auto new_path = original_path // get original path
-		+ generate_random_str(std::min(original_name_length, _MAX_PATH - original_path.length())); // generate new name
-	
-	DLOG_F(INFO, "New generated name: \"%s\"", CSTR(new_path));
-
-	// https://stackoverflow.com/a/48614612
-	try {
-		/*
-		* Personal note: If you use the "std::rename" function (in my case: rename(_file_path, CSTR(new_path)))
-		* provided by C and the new name collides with an already existing file then it just doesn't
-		* do it. But with C++ 17 file system, if that's the case, the original file will get over written
-		* by the renamed one.
-		*/
-		fs::rename(file_path, new_path);
-		DLOG_F(INFO, "Succesfully renamed");
-		file_path = new_path;
-	}
-	catch (std::filesystem::filesystem_error& e) {
-		LOG_F(ERROR, "Error while trying to rename \"%s\"", _file_path);
-		perror("Error renaming file");
-	}
-}
-
-void overwrite_content(std::string& file_path, int passes) {
-	DLOG_F(INFO, "Attempting overwrite: %s", CSTR(file_path));
-
-	const auto size = fs::file_size(file_path);
-	DLOG_F(INFO, "File size: %i", size);
-	for (auto p = 0; p < passes; ++p) {
-		std::ofstream dummy(file_path, std::ios_base::binary | std::ios_base::trunc | std::ios_base::out);
-		for (auto i = 0; i < size; ++i) {
-			dummy.put(0); //Overwrite with zeros
+			delete[] input;
+			input = nullptr;
+			argc = _argc;
+			argv = _argv;
+			goto avex;
 		}
-		dummy.close();
 	}
 
-	DLOG_F(INFO, "Succesfully overwritten");
+	return EXIT_SUCCESS;
 }
+
+void erase(std::string& path, bool rename, int passes) {
+	LOG_F(INFO, "Removing: %s", CSTR(path));
+	if (rename) {
+		rename_path(path);
+	}
+
+	if (!fs::is_directory(path) && passes != 0) {
+		overwrite_content(path, passes);
+	}
+
+	unlink_path(path);
+}
+
+// https://stackoverflow.com/a/44326935
+// Maybe try making this C++ like instead of C
+char* split_line(char** str, char** word)
+{
+	constexpr auto QUOTE = '\'';
+	auto inquotes = false;
+
+	// optimization
+	if (**str == 0) {
+		return nullptr;
+	}
+
+	// Skip leading spaces.
+	while (**str && isspace(**str)) {
+		(*str)++;
+	}
+
+	if (**str == '\0') {
+		return nullptr;
+	}
+
+	// Phrase in quotes is one arg
+	if (**str == QUOTE) {
+		(*str)++;
+		inquotes = true;
+	}
+
+	// Set phrase begining
+	*word = *str;
+
+	// Skip all chars if in quotes
+	if (inquotes) {
+		while (**str && **str != QUOTE) {
+			(*str)++;
+			//if( **str!= QUOTE )
+		}
+	}
+	else {
+		// Skip non-space characters.
+		while (**str && !isspace(**str)) {
+			(*str)++;
+		}
+	}
+	// Null terminate the phrase and set `str` pointer to next symbol
+	if (**str) {
+		*(*str)++ = '\0';
+	}
+
+	return *str;
+}
+
 
 std::string decompose_path(std::string file_path)
 {
@@ -159,26 +198,3 @@ std::string decompose_path(std::string file_path)
 	return file_path;
 }
 
-void unlink_path(std::string& path) {
-	const char* _path_str = CSTR(path);
-	ERROR_CONTEXT("Unlinking", _path_str);
-	DLOG_F(INFO, "Attempting to unlink: %s", _path_str);
-
-	auto status = -1;
-	if (fs::is_directory(path)) {
-		status = fs::remove_all(_path_str);
-		DLOG_F(INFO, "Remove all call %b", status);
-	}
-	else {
-		status = fs::remove(_path_str);
-		DLOG_F(INFO, "Remove call %b", status);
-	}
-	path = decompose_path(path);
-	if (status) {
-		DLOG_F(INFO, "File entry \"%s\" and it's contents removed from file system entry", CSTR(path));
-		LOG_F(INFO, "Entry erased successfully");
-	}
-	else {
-		LOG_F(ERROR, "Error while trying to erase \"%s\" from file system's entry", CSTR(path));
-	}
-}
