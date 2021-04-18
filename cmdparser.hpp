@@ -1,31 +1,25 @@
 /*
-Copyright (c) 2016, Pascal Vizeli
-All rights reserved.
+The MIT License (MIT)
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Copyright (c) 2015 - 2016 Florian Rappl
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-* Neither the name of SerialCommandParser nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 */
 
 /*
@@ -440,7 +434,7 @@ namespace cli {
 			// arguments are missing.
 			for (auto command : _commands) {
 				if (command->handled && command->dominant && !command->parse(output, error)) {
-					error << howto_use(command);
+					howto_use(command);
 					return false;
 				}
 			}
@@ -448,7 +442,7 @@ namespace cli {
 			// Next, check for any missing arguments.
 			for (auto command : _commands) {
 				if (command->required && !command->handled) {
-					error << howto_required(command);
+					howto_required(command);
 					return false;
 				}
 			}
@@ -456,7 +450,7 @@ namespace cli {
 			// Finally, parse all remaining arguments.
 			for (auto command : _commands) {
 				if (command->handled && !command->dominant && !command->parse(output, error)) {
-					error << howto_use(command);
+					howto_use(command);
 					return false;
 				}
 			}
@@ -553,24 +547,22 @@ namespace cli {
 
 		void print_help(std::stringstream& ss) const {
 			if (has_help()) {
-				ss << "For more help use --help or -h.\n";
+				//AVEX CHANGE
+				LOG_F(INFO, "For more help use --help or -h.");
 			}
 		}
 
-		std::string howto_required(CmdBase* command) const {
-			std::stringstream ss { };
-			ss << "The parameter " << command->name << " is required.\n";
-			ss << command->description << '\n';
-			print_help(ss);
-			return ss.str();
+		void howto_required(CmdBase* command){
+			//AVEX CHANGE
+			const std::string howto = "The required parameter -%s or %s is missing.";
+			LOG_F(INFO, howto.c_str(), command->name.c_str(), command->alternative.c_str());
+			LOG_F(INFO, ("Description: " + command->description).c_str());
 		}
 
-		std::string howto_use(CmdBase* command) const {
-			std::stringstream ss { };
-			ss << "The parameter " << command->name << " has invalid arguments.\n";
-			ss << command->description << '\n';
-			print_help(ss);
-			return ss.str();
+		void howto_use(CmdBase* command) const {
+			const std::string howto = "The parameter -%s has invalid arguments.";
+			LOG_F(INFO, howto.c_str(), command->name.c_str());
+			LOG_F(INFO, ("Description: " + command->description).c_str());
 		}
 
 		std::string no_default() const {
